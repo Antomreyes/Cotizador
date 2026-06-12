@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cotizador de Exportación</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f5;color:#222;padding:1.5rem;}
+h1{font-size:22px;font-weight:600;margin-bottom:4px;color:#1a1a1a;}
+.sub{font-size:13px;color:#888;margin-bottom:1.5rem;}
+.card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:1.25rem;margin-bottom:1rem;}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:14px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
+@media(max-width:600px){.g3,.g4{grid-template-columns:1fr 1fr;}.g2{grid-template-columns:1fr;}}
+.f{display:flex;flex-direction:column;gap:4px;}
+.f label{font-size:11px;color:#666;}
+.f input,.f select{font-size:13px;padding:7px 10px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#222;width:100%;}
+.f input:focus,.f select:focus{outline:none;border-color:#3b82f6;}
+.divider{border:none;border-top:1px solid #f0f0f0;margin:12px 0;}
+.step{background:#fff;border:1px solid #e5e5e5;border-radius:12px;margin-bottom:.75rem;overflow:hidden;}
+.step-head{display:flex;align-items:center;gap:10px;padding:.75rem 1rem;background:#f9f9f9;border-bottom:1px solid #f0f0f0;}
+.step-num{width:22px;height:22px;border-radius:50%;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-title{font-size:13px;font-weight:600;color:#222;}
+.step-body{padding:.75rem 1rem;}
+.row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f5f5f5;font-size:13px;}
+.row:last-child{border-bottom:none;}
+.rl{color:#666;}
+.rv{font-weight:500;}
+.step-total{display:flex;justify-content:space-between;align-items:center;padding:.6rem 1rem;background:#f9f9f9;font-size:14px;font-weight:600;border-top:1px solid #f0f0f0;}
+.pv-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center;}
+.pv-label{font-size:13px;color:#1d4ed8;font-weight:500;}
+.pv-sub{font-size:11px;color:#3b82f6;margin-top:2px;}
+.pv-val{font-size:24px;font-weight:700;color:#1d4ed8;}
+.pv-val-sub{font-size:11px;color:#3b82f6;text-align:right;}
+.green{color:#16a34a;}
+.red{color:#dc2626;}
+.btn{width:100%;padding:11px;font-size:14px;font-weight:500;cursor:pointer;border-radius:10px;background:#1d4ed8;color:#fff;border:none;margin-top:4px;}
+.btn:hover{background:#1e40af;}
+</style>
+</head>
+<body>
+
+<h1>Cotizador de Exportación</h1>
+<p class="sub">Ingresa los datos y obtén el precio de venta mínimo al instante</p>
+
+<div class="card">
+  <p class="card-title">Datos generales</p>
+  <div class="g3">
+    <div class="f"><label>Producto</label><input type="text" id="producto" placeholder="Ej: Cebolla"></div>
+    <div class="f"><label>Tipo de cambio (CLP/USD)</label><input type="number" id="tc" value="900"></div>
+    <div class="f"><label>Total kilos</label><input type="number" id="kilos" value="24000"></div>
+  </div>
+  <hr class="divider">
+  <div class="g3">
+    <div class="f"><label>Tipo de envase</label>
+      <select id="tipoenvase" onchange="actualizarEnvase()">
+        <option value="bolsa">Bolsa</option>
+        <option value="caja">Caja</option>
+        <option value="saco">Saco</option>
+        <option value="caja_madera">Caja de madera</option>
+        <option value="bin">Bin</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="f"><label>Kilos por <span id="lenv">bolsa</span></label><input type="number" id="kgenvase" value="25" step="0.1"></div>
+    <div class="f"><label>Precio compra (USD/<span id="lenv2">bolsa</span>)</label><input type="number" id="compra" value="13" step="0.01"></div>
+  </div>
+  <hr class="divider">
+  <div class="g2">
+    <div class="f"><label>Margen empresa (%)</label><input type="number" id="margen" value="8" step="0.5"></div>
+    <div class="f"><label>GAV (CLP/kg)</label><input type="number" id="gav" value="220"></div>
+  </div>
+</div>
+
+<div class="card">
+  <p class="card-title">Costos logísticos — USD</p>
+  <div class="g4">
+    <div class="f"><label>Flete marítimo</label><input type="number" id="fmar" value="3850" step="0.01"></div>
+    <div class="f"><label>Flete terrestre</label><input type="number" id="fter" value="800" step="0.01"></div>
+    <div class="f"><label>Aduana AA</label><input type="number" id="aduana" value="166" step="0.01"></div>
+    <div class="f"><label>Gastos VO</label><input type="number" id="gvo" value="575" step="0.01"></div>
+    <div class="f"><label>Gastos QC</label><input type="number" id="gqc" value="555.56" step="0.01"></div>
+    <div class="f"><label>Gastos MAT</label><input type="number" id="gmat" value="72.22" step="0.01"></div>
+    <div class="f"><label>Gastos adicionales</label><input type="number" id="gadicional" value="0" step="0.01"></div>
+  </div>
+</div>
+
+<div id="resultado"></div>
+
+<script>
+const ids=['tc','kilos','kgenvase','compra','margen','gav','fmar','fter','aduana','gvo','gqc','gmat','gadicional','producto'];
+ids.forEach(id=>document.getElementById(id).addEventListener('input',calcular));
+
+function getNombre(){
+  const m={bolsa:'bolsa',caja:'caja',saco:'saco',caja_madera:'caja de madera',bin:'bin',otro:'envase'};
+  return m[document.getElementById('tipoenvase').value]||'envase';
+}
+function actualizarEnvase(){
+  const n=getNombre();
+  document.getElementById('lenv').textContent=n;
+  document.getElementById('lenv2').textContent=n;
+  calcular();
+}
+
+function getValues(){
+  return {
+    tc:+document.getElementById('tc').value||900,
+    kilos:+document.getElementById('kilos').value||24000,
+    kgenv:+document.getElementById('kgenvase').value||25,
+    compra:+document.getElementById('compra').value||0,
+    margen:+document.getElementById('margen').value||8,
+    gavClp:+document.getElementById('gav').value||0,
+    fmar:+document.getElementById('fmar').value||0,
+    fter:+document.getElementById('fter').value||0,
+    aduana:+document.getElementById('aduana').value||0,
+    gvo:+document.getElementById('gvo').value||0,
+    gqc:+document.getElementById('gqc').value||0,
+    gmat:+document.getElementById('gmat').value||0,
+    gadicional:+document.getElementById('gadicional').value||0,
+    producto:document.getElementById('producto').value||'Producto',
+  };
+}
+
+function calcular(){
+  const v=getValues();
+  const env=getNombre();
+  const totalLog=v.fmar+v.fter+v.aduana+v.gvo+v.gqc+v.gmat+v.gadicional;
+  const logKg=totalLog/v.kilos;
+  const envases=Math.round(v.kilos/v.kgenv);
+  const compraKg=v.compra/v.kgenv;
+  const subtotal=compraKg+logKg;
+  const pv=subtotal/(1-v.margen/100);
+  const pvEnv=pv*v.kgenv;
+  const utilKg=pv-subtotal;
+  const utilBruta=utilKg*v.kilos;
+  const gavUsd=v.gavClp/v.tc;
+  const gavTotal=gavUsd*v.kilos;
+  const utilGav=utilBruta-gavTotal;
+  const impuesto=utilGav>0?utilGav*0.25:0;
+  const utilFinal=utilGav-impuesto;
+  const uc=utilBruta>=0?'green':'red';
+  const uf=utilFinal>=0?'green':'red';
+
+  document.getElementById('resultado').innerHTML=`
+    <div class="step">
+      <div class="step-head"><div class="step-num">1</div><span class="step-title">Costos logísticos</span></div>
+      <div class="step-body">
+        <div class="row"><span class="rl">Flete marítimo</span><span class="rv">$${v.fmar.toFixed(2)} USD</span></div>
+        <div class="row"><span class="rl">Flete terrestre</span><span class="rv">$${v.fter.toFixed(2)} USD</span></div>
+        <div class="row"><span class="rl">Aduana AA</span><span class="rv">$${v.aduana.toFixed(2)} USD</span></div>
+        <div class="row"><span class="rl">Gastos VO</span><span class="rv">$${v.gvo.toFixed(2)} USD</span></div>
+        <div class="row"><span class="rl">Gastos QC</span><span class="rv">$${v.gqc.toFixed(2)} USD</span></div>
+        <div class="row"><span class="rl">Gastos MAT</span><span class="rv">$${v.gmat.toFixed(2)} USD</span></div>
+        ${v.gadicional>0?`<div class="row"><span class="rl">Gastos adicionales</span><span class="rv">$${v.gadicional.toFixed(2)} USD</span></div>`:''}
+      </div>
+      <div class="step-total"><span>Total costos logísticos</span><span>$${totalLog.toFixed(2)} USD</span></div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><div class="step-num">2</div><span class="step-title">Costo logístico por kilo</span></div>
+      <div class="step-body">
+        <div class="row"><span class="rl">Fórmula</span><span class="rv">$${totalLog.toFixed(2)} ÷ ${v.kilos.toLocaleString()} kg</span></div>
+      </div>
+      <div class="step-total"><span>Costo logístico/kg</span><span>$${logKg.toFixed(4)} USD/kg</span></div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><div class="step-num">3</div><span class="step-title">Precio de compra por kilo</span></div>
+      <div class="step-body">
+        <div class="row"><span class="rl">Precio ${env} (${v.kgenv} kg)</span><span class="rv">$${v.compra.toFixed(2)} USD</span></div>
+        <div class="row"><span class="rl">Fórmula</span><span class="rv">$${v.compra} ÷ ${v.kgenv} kg</span></div>
+      </div>
+      <div class="step-total"><span>Precio compra/kg</span><span>$${compraKg.toFixed(4)} USD/kg</span></div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><div class="step-num">4</div><span class="step-title">Costo total por kilo</span></div>
+      <div class="step-body">
+        <div class="row"><span class="rl">Precio compra/kg</span><span class="rv">$${compraKg.toFixed(4)} USD</span></div>
+        <div class="row"><span class="rl">Costo logístico/kg</span><span class="rv">$${logKg.toFixed(4)} USD</span></div>
+      </div>
+      <div class="step-total"><span>Subtotal</span><span>$${subtotal.toFixed(4)} USD/kg</span></div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><div class="step-num">5</div><span class="step-title">Precio de venta mínimo (+${v.margen}% margen)</span></div>
+      <div class="step-body">
+        <div class="row"><span class="rl">Fórmula</span><span class="rv">$${subtotal.toFixed(4)} ÷ (1 − ${v.margen/100})</span></div>
+        <div class="row"><span class="rl">Margen incluido</span><span class="rv">$${utilKg.toFixed(4)} USD/kg</span></div>
+      </div>
+      <div class="step-total"><span>PV mínimo/kg</span><span style="color:#1d4ed8">$${pv.toFixed(4)} USD/kg</span></div>
+    </div>
+
+    <div class="pv-box">
+      <div>
+        <div class="pv-label">Precio de venta mínimo por ${env}</div>
+        <div class="pv-sub">${envases} ${env}s de ${v.kgenv} kg × $${pv.toFixed(4)}/kg</div>
+      </div>
+      <div style="text-align:right">
+        <div class="pv-val">$${pvEnv.toFixed(2)} USD</div>
+        <div class="pv-val-sub">por ${env}</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><div class="step-num">6</div><span class="step-title">Utilidades</span></div>
+      <div class="step-body">
+        <div class="row"><span class="rl">Utilidad bruta/kg</span><span class="rv ${uc}">$${utilKg.toFixed(4)} USD</span></div>
+        <div class="row"><span class="rl">Utilidad bruta total (${v.kilos.toLocaleString()} kg)</span><span class="rv ${uc}">$${utilBruta.toFixed(2)} USD</span></div>
+        <div class="row"><span class="rl">GAV (${v.gavClp} CLP/kg)</span><span class="rv">− $${gavTotal.toFixed(2)} USD</span></div>
+        <div class="row"><span class="rl">Utilidad con GAV</span><span class="rv ${uf}">$${utilGav.toFixed(2)} USD</span></div>
+        <div class="row"><span class="rl">Impuesto 25%</span><span class="rv">− $${impuesto.toFixed(2)} USD</span></div>
+      </div>
+      <div class="step-total"><span>Utilidad final</span><span class="${uf}">$${utilFinal.toFixed(2)} USD</span></div>
+    </div>
+
+    <button class="btn" onclick="generarPDF()">⬇ Descargar cotización PDF</button>
+  `;
+}
+
+function generarPDF(){
+  const v=getValues();
+  const env=getNombre();
+  const totalLog=v.fmar+v.fter+v.aduana+v.gvo+v.gqc+v.gmat+v.gadicional;
+  const logKg=totalLog/v.kilos;
+  const envases=Math.round(v.kilos/v.kgenv);
+  const compraKg=v.compra/v.kgenv;
+  const subtotal=compraKg+logKg;
+  const pv=subtotal/(1-v.margen/100);
+  const pvEnv=pv*v.kgenv;
+  const utilKg=pv-subtotal;
+  const utilBruta=utilKg*v.kilos;
+  const gavUsd=v.gavClp/v.tc;
+  const gavTotal=gavUsd*v.kilos;
+  const utilGav=utilBruta-gavTotal;
+  const impuesto=utilGav>0?utilGav*0.25:0;
+  const utilFinal=utilGav-impuesto;
+
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  let y=20;
+  const lm=15, rw=180;
+
+  // Header
+  doc.setFillColor(29,78,216);
+  doc.rect(0,0,210,14,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(13);doc.setFont('helvetica','bold');
+  doc.text('COTIZADOR DE EXPORTACION',lm,10);
+  doc.setTextColor(0,0,0);
+
+  y=22;
+  doc.setFontSize(16);doc.setFont('helvetica','bold');
+  doc.text(v.producto.toUpperCase(),lm,y);
+  y+=6;
+  doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);
+  doc.text(`Tipo de cambio: $${v.tc} CLP/USD   |   Total: ${v.kilos.toLocaleString()} kg   |   ${envases} ${env}s de ${v.kgenv} kg`,lm,y);
+  doc.setTextColor(0,0,0);
+  y+=8;
+
+  function seccion(titulo){
+    doc.setFillColor(243,244,246);
+    doc.rect(lm,y,rw,7,'F');
+    doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(80,80,80);
+    doc.text(titulo.toUpperCase(),lm+2,y+5);
+    doc.setTextColor(0,0,0);
+    y+=9;
+  }
+  function fila(label,valor,negrita){
+    doc.setFontSize(10);
+    doc.setFont('helvetica', negrita?'bold':'normal');
+    doc.text(label,lm+2,y);
+    doc.text(valor,lm+rw,y,{align:'right'});
+    doc.setDrawColor(230,230,230);
+    doc.line(lm,y+1,lm+rw,y+1);
+    y+=7;
+  }
+  function filaTotal(label,valor,color){
+    doc.setFillColor(color||[239,246,255]);
+    doc.rect(lm,y-4,rw,8,'F');
+    doc.setFontSize(11);doc.setFont('helvetica','bold');
+    if(color&&color[0]<100) doc.setTextColor(255,255,255); else doc.setTextColor(29,78,216);
+    doc.text(label,lm+2,y+2);
+    doc.text(valor,lm+rw,y+2,{align:'right'});
+    doc.setTextColor(0,0,0);
+    y+=10;
+  }
+
+  // Paso 1
+  seccion('Paso 1 — Costos logísticos');
+  fila('Flete maritimo',`$${v.fmar.toFixed(2)} USD`);
+  fila('Flete terrestre',`$${v.fter.toFixed(2)} USD`);
+  fila('Aduana AA',`$${v.aduana.toFixed(2)} USD`);
+  fila('Gastos VO',`$${v.gvo.toFixed(2)} USD`);
+  fila('Gastos QC',`$${v.gqc.toFixed(2)} USD`);
+  fila('Gastos MAT',`$${v.gmat.toFixed(2)} USD`);
+  if(v.gadicional>0) fila('Gastos adicionales',`$${v.gadicional.toFixed(2)} USD`);
+  filaTotal('Total costos logísticos',`$${totalLog.toFixed(2)} USD`);
+  y+=2;
+
+  // Paso 2
+  seccion('Paso 2 — Costo logístico por kilo');
+  fila(`Formula: $${totalLog.toFixed(2)} / ${v.kilos} kg`,'');
+  filaTotal('Costo logístico/kg',`$${logKg.toFixed(4)} USD/kg`);
+  y+=2;
+
+  // Paso 3
+  seccion('Paso 3 — Precio de compra por kilo');
+  fila(`Precio ${env} (${v.kgenv} kg)`,`$${v.compra.toFixed(2)} USD`);
+  fila(`Formula: $${v.compra} / ${v.kgenv} kg`,'');
+  filaTotal('Precio compra/kg',`$${compraKg.toFixed(4)} USD/kg`);
+  y+=2;
+
+  // Paso 4
+  seccion('Paso 4 — Costo total por kilo');
+  fila('Precio compra/kg',`$${compraKg.toFixed(4)} USD`);
+  fila('Costo logístico/kg',`$${logKg.toFixed(4)} USD`);
+  filaTotal('Subtotal',`$${subtotal.toFixed(4)} USD/kg`);
+  y+=2;
+
+  // Paso 5
+  seccion(`Paso 5 — Precio de venta mínimo (+${v.margen}% margen)`);
+  fila(`Formula: $${subtotal.toFixed(4)} / (1 - ${v.margen/100})`,'');
+  fila('Margen incluido',`$${utilKg.toFixed(4)} USD/kg`);
+  filaTotal('PV mínimo/kg',`$${pv.toFixed(4)} USD/kg`);
+  y+=2;
+
+  // PV por envase destacado
+  doc.setFillColor(29,78,216);
+  doc.rect(lm,y,rw,12,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(11);doc.setFont('helvetica','bold');
+  doc.text(`Precio de venta mínimo por ${env}`,lm+2,y+8);
+  doc.text(`$${pvEnv.toFixed(2)} USD`,lm+rw,y+8,{align:'right'});
+  doc.setTextColor(0,0,0);
+  y+=16;
+
+  // Paso 6
+  seccion('Paso 6 — Utilidades');
+  fila('Utilidad bruta/kg',`$${utilKg.toFixed(4)} USD`);
+  fila(`Utilidad bruta total (${v.kilos.toLocaleString()} kg)`,`$${utilBruta.toFixed(2)} USD`);
+  fila(`GAV (${v.gavClp} CLP/kg)`,`- $${gavTotal.toFixed(2)} USD`);
+  fila('Utilidad con GAV',`$${utilGav.toFixed(2)} USD`);
+  fila('Impuesto 25%',`- $${impuesto.toFixed(2)} USD`);
+  const ufColor=utilFinal>=0?[22,163,74]:[220,38,38];
+  filaTotal('UTILIDAD FINAL',`$${utilFinal.toFixed(2)} USD`,ufColor);
+
+  // Footer
+  y+=4;
+  doc.setFontSize(8);doc.setTextColor(150,150,150);
+  doc.text(`Generado el ${new Date().toLocaleDateString('es-CL')}`,lm,y);
+
+  doc.save(`cotizacion_${v.producto.replace(/ /g,'_')}.pdf`);
+}
+
+calcular();
+</script>
+</body>
+</html>
